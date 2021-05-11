@@ -1,0 +1,75 @@
+{
+    "env": {
+        "DEBUG" : "1",
+        "nrfSDK": "E:\\Downloads\\nRF5_SDK_17.0.2_d674dde\\nRF5_SDK_17.0.2_d674dde"
+    },
+
+    "configurations": [
+        {
+            "name": "ARMGCC",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${nrfSDK}/components/ant/ant_profiles/ant_bpwr/simulator",
+                "${nrfSDK}/external/fprintf",
+                "${nrfSDK}/components/ant/ant_key_manager",
+                "${nrfSDK}/components/libraries/hardfault/nrf52",
+                "${nrfSDK}/components/ant/ant_profiles/ant_common/pages",
+                "${nrfSDK}/integration/nrfx",
+                "${nrfSDK}/components/softdevice/s212/headers/nrf52",
+                "${nrfSDK}/components/libraries/scheduler",
+                "${nrfSDK}/components/libraries/experimental_section_vars",
+                "${nrfSDK}/components/ant/ant_profiles/ant_bpwr/utils",
+                "${nrfSDK}/modules/nrfx/mdk",
+                "${nrfSDK}/components/libraries/delay",
+                "${nrfSDK}/components/libraries/strerror",
+                "${nrfSDK}/integration/nrfx/legacy",
+                "${nrfSDK}/components/boards",
+                "${nrfSDK}/components/softdevice/s212/headers",
+                "${nrfSDK}/components/ant/ant_profiles/ant_bpwr",
+                "${nrfSDK}/components/ant/ant_state_indicator",
+                "${nrfSDK}/components/libraries/log",
+                "${nrfSDK}/modules/nrfx/hal",
+                "${nrfSDK}/components/libraries/log/src",
+                "${nrfSDK}/components/libraries/bsp",
+                "${nrfSDK}/components/ant/ant_key_manager/config",
+                "${nrfSDK}/components/libraries/sortlist",
+                "${nrfSDK}/modules/nrfx/drivers/include",
+                "${nrfSDK}/components/ant/ant_channel_config",
+                "${nrfSDK}/components/libraries/hardfault",
+                "${nrfSDK}/components/libraries/balloc",
+                "${nrfSDK}/components/libraries/util",
+                "${nrfSDK}/modules/nrfx",
+                "${nrfSDK}/components/softdevice/common",
+                "${nrfSDK}/components",
+                "${nrfSDK}/components/libraries/atomic_fifo",
+                "${nrfSDK}/external/segger_rtt",
+                "${nrfSDK}/components/libraries/ringbuf",
+                "${nrfSDK}/components/libraries/memobj",
+                "${nrfSDK}/components/libraries/timer",
+                "${nrfSDK}/components/libraries/atomic",
+                "${nrfSDK}/components/libraries/button",
+                "${nrfSDK}/components/ant/ant_profiles/ant_bpwr/pages",
+                "${nrfSDK}/components/toolchain/cmsis/include",
+                "${nrfSDK}/components/libraries/mutex",
+                "${nrfSDK}/components/libraries/pwr_mgmt",
+                "${nrfSDK}/components/libraries/sensorsim"
+            ],
+            "defines": [
+                "DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "BOARD_SPARKFUN_NRF52840_MINI",
+                "BSP_DEFINES_ONLY",
+                "CONFIG_GPIO_AS_PINRESET",
+                "FLOAT_ABI_HARD",
+                "NRF52840_XXAA",
+                "DCONFIG_NFCT_PINS_AS_GPIOS"
+            ],
+            "compilerPath": "C:\\Program Files (x86)\\GNU Tools ARM Embedded\\5.4 2016q3\\bin\\arm-none-eabi-gcc.exe",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "clang-x64"
+        }
+    ],
+    "version": 4
+}
