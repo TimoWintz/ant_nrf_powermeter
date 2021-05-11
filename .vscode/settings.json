@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "nrf.h": "c",
-        "nrf_log_default_backends.h": "c"
+        "nrf_log_default_backends.h": "c",
+        "type_traits": "c"
     }
 }

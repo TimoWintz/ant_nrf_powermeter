@@ -50,19 +50,7 @@
  * ABOVE LIMITATIONS MAY NOT APPLY TO YOU.
  *
  */
-/**@file
- * @defgroup ant_bpwr_sensor_main ANT Bicycle Power sensor example
- * @{
- * @ingroup nrf_ant_bicycle_power
- *
- * @brief Example of ANT Bicycle Power profile display.
- *
- * Before compiling this example for NRF52, complete the following steps:
- * - Download the S212 SoftDevice from <a href="https://www.thisisant.com/developer/components/nrf52832" target="_blank">thisisant.com</a>.
- * - Extract the downloaded zip file and copy the S212 SoftDevice headers to <tt>\<InstallFolder\>/components/softdevice/s212/headers</tt>.
- * If you are using Keil packs, copy the files into a @c headers folder in your example folder.
- * - Make sure that @ref ANT_LICENSE_KEY in @c nrf_sdm.h is uncommented.
- */
+
 
 #include <stdio.h>
 #include "nrf.h"
@@ -75,12 +63,26 @@
 #include "nrf_sdh_ant.h"
 #include "ant_key_manager.h"
 #include "ant_bpwr.h"
-#include "ant_bpwr_simulator.h"
 #include "ant_state_indicator.h"
 
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
+
+#include "LSM6DS3.h"
+#include "ADS1232.h"
+#include "power.h"
+#include "storage.h"
+
+#include "config.h"
+
+#define ACCEL_MEAS_INTERVAL                APP_TIMER_TICKS(1000/ACCEL_HZ)
+
+#define SCALE_HZ 10
+#define SCALE_MEAS_INTERVAL                APP_TIMER_TICKS(1000/SCALE_HZ)
+
+#define DEFAULT_SCALE_OFFSET 70000
+#define DEFAULT_SCALE_SCALE 2000
 
 #define MODIFICATION_TYPE_BUTTON 0 /* predefined value, MUST REMAIN UNCHANGED */
 #define MODIFICATION_TYPE_AUTO   1 /* predefined value, MUST REMAIN UNCHANGED */
@@ -90,7 +92,128 @@
     #error Unsupported value of MODIFICATION_TYPE.
 #endif
 
-/** @snippet [ANT BPWR TX Instance] */
+#define CRANK_LENGTH 175
+
+/** DATA STORAGE */
+
+static stored_data_t m_stored_data;
+static void init_stored_data() {
+    m_stored_data.params.scale_offset = DEFAULT_SCALE_OFFSET;
+    m_stored_data.params.scale_scale = DEFAULT_SCALE_SCALE;
+    storage_init();
+    storage_read(&m_stored_data);
+}
+
+
+/** IMU */
+
+static imu_t m_imu;
+
+static void init_imu() {
+    m_imu.accel_enabled = true;
+    m_imu.gyro_enabled = false;
+    m_imu.temp_enabled = true;
+
+    imu_begin(&m_imu);
+}
+
+/** SCALE */
+
+static scale_t m_scale;
+
+static void init_scale() {
+    scale_begin(GAIN64, SLOW);
+    m_scale.calibrating = true;
+    m_scale.offset = m_stored_data.params.scale_offset;
+    m_scale.scale = m_stored_data.params.scale_scale;
+    
+    int error = scale_read(&m_scale);
+    APP_ERROR_CHECK(error);
+    m_scale.calibrating = false;
+}
+
+static bool calibrate_scale_offset() {
+    int error = scale_read(&m_scale);
+    if (error) {
+        return false;
+    }
+    m_scale.offset = m_scale.raw;
+    return true;
+}
+
+/** POWER COMPUTATION */
+
+static power_compute_t m_power_compute;
+
+static void init_power_compute() {
+    m_power_compute.accel = 0.0;
+    m_power_compute.last_power = 0.0;
+
+    m_power_compute.force_cnt = 0;
+    m_power_compute.force_sum = 0.0;
+
+    m_power_compute.rev_cnt = 0;
+    m_power_compute.rev_timer_cnt = 0;
+
+    m_power_compute.crank_length = 0.001 * CRANK_LENGTH;
+}
+
+/** TIMERS */
+
+APP_TIMER_DEF(m_accel_timer_id);
+
+static void accel_timeout_handler(void * p_context)
+{
+    imu_update(&m_imu);
+    power_update_accel(&m_power_compute, &m_imu);
+}
+
+APP_TIMER_DEF(m_scale_timer_id);
+
+static void scale_timeout_handler(void * p_context)
+{
+    NRF_LOG_INFO("Reading scale")
+    if (scale_available()) {
+        scale_read(&m_scale);   
+    }
+    else {
+        NRF_LOG_WARNING("Scale unavailable !")
+    }
+    power_update_scale(&m_power_compute, &m_scale);
+}
+
+static void timers_init(void)
+{
+    ret_code_t err_code;
+
+     // Create timers.
+    err_code = app_timer_create(&m_accel_timer_id,
+                                APP_TIMER_MODE_REPEATED,
+                                accel_timeout_handler);
+
+    APP_ERROR_CHECK(err_code);
+
+    err_code = app_timer_create(&m_scale_timer_id,
+                                APP_TIMER_MODE_REPEATED,
+                                scale_timeout_handler);
+
+    APP_ERROR_CHECK(err_code);
+}
+
+static void application_timers_start(void)
+{
+    ret_code_t err_code;
+
+    // Start application timers.
+    err_code = app_timer_start(m_accel_timer_id, ACCEL_MEAS_INTERVAL, NULL);
+    APP_ERROR_CHECK(err_code);
+
+    err_code = app_timer_start(m_scale_timer_id, SCALE_MEAS_INTERVAL, NULL);
+    APP_ERROR_CHECK(err_code);
+}
+
+
+/** ANT */
 void ant_bpwr_evt_handler(ant_bpwr_profile_t * p_profile, ant_bpwr_evt_t event);
 void ant_bpwr_calib_handler(ant_bpwr_profile_t * p_profile, ant_bpwr_page1_data_t * p_page1);
 
@@ -110,38 +233,26 @@ static ant_bpwr_profile_t m_ant_bpwr;
 NRF_SDH_ANT_OBSERVER(m_ant_observer, ANT_BPWR_ANT_OBSERVER_PRIO,
                      ant_bpwr_sens_evt_handler, &m_ant_bpwr);
 
-/** @snippet [ANT BPWR TX Instance] */
 
-static ant_bpwr_simulator_t  m_ant_bpwr_simulator;
-
-/**@brief Function for handling bsp events.
- */
-/** @snippet [ANT BPWR simulator button] */
 void bsp_evt_handler(bsp_event_t event)
 {
     switch (event)
     {
         case BSP_EVENT_KEY_0:
-            ant_bpwr_simulator_increment(&m_ant_bpwr_simulator);
             break;
 
         case BSP_EVENT_KEY_1:
-            ant_bpwr_simulator_decrement(&m_ant_bpwr_simulator);
             break;
 
         case BSP_EVENT_KEY_2:
-            ant_bpwr_calib_response(&m_ant_bpwr);
             break;
 
         default:
             break;
     }
 }
-/** @snippet [ANT BPWR simulator button] */
 
-/**@brief Function for handling ANT BPWR events.
- */
-/** @snippet [ANT BPWR simulator call] */
+
 void ant_bpwr_evt_handler(ant_bpwr_profile_t * p_profile, ant_bpwr_evt_t event)
 {
     nrf_pwr_mgmt_feed();
@@ -159,14 +270,13 @@ void ant_bpwr_evt_handler(ant_bpwr_profile_t * p_profile, ant_bpwr_evt_t event)
         case ANT_BPWR_PAGE_80_UPDATED:
             /* fall through */
         case ANT_BPWR_PAGE_81_UPDATED:
-            ant_bpwr_simulator_one_iteration(&m_ant_bpwr_simulator, event);
+            power_update_pages(&m_power_compute, &m_ant_bpwr);
             break;
 
         default:
             break;
     }
 }
-/** @snippet [ANT BPWR simulator call] */
 
 /**@brief Function for handling ANT BPWR events.
  */
@@ -176,8 +286,12 @@ void ant_bpwr_calib_handler(ant_bpwr_profile_t * p_profile, ant_bpwr_page1_data_
     switch (p_page1->calibration_id)
     {
         case ANT_BPWR_CALIB_ID_MANUAL:
+            if (!calibrate_scale_offset()) {
+                m_ant_bpwr.BPWR_PROFILE_calibration_id     = ANT_BPWR_CALIB_ID_FAILED;
+                m_ant_bpwr.BPWR_PROFILE_general_calib_data = m_scale.offset;
+            }
             m_ant_bpwr.BPWR_PROFILE_calibration_id     = ANT_BPWR_CALIB_ID_MANUAL_SUCCESS;
-            m_ant_bpwr.BPWR_PROFILE_general_calib_data = CALIBRATION_DATA;
+            m_ant_bpwr.BPWR_PROFILE_general_calib_data = m_scale.offset;
             break;
 
         case ANT_BPWR_CALIB_ID_AUTO:
@@ -239,28 +353,6 @@ static void log_init(void)
     NRF_LOG_DEFAULT_BACKENDS_INIT();
 }
 
-/**@brief Function for the BPWR simulator initialization.
- */
-void simulator_setup(void)
-{
-    /** @snippet [ANT BPWR simulator init] */
-    const ant_bpwr_simulator_cfg_t simulator_cfg =
-    {
-        .p_profile   = &m_ant_bpwr,
-        .sensor_type = (ant_bpwr_torque_t)(SENSOR_TYPE),
-    };
-    /** @snippet [ANT BPWR simulator init] */
-
-#if MODIFICATION_TYPE == MODIFICATION_TYPE_AUTO
-    /** @snippet [ANT BPWR simulator auto init] */
-    ant_bpwr_simulator_init(&m_ant_bpwr_simulator, &simulator_cfg, true);
-    /** @snippet [ANT BPWR simulator auto init] */
-#else
-    /** @snippet [ANT BPWR simulator button init] */
-    ant_bpwr_simulator_init(&m_ant_bpwr_simulator, &simulator_cfg, false);
-    /** @snippet [ANT BPWR simulator button init] */
-#endif
-}
 
 /**
  * @brief Function for ANT stack initialization.
@@ -321,15 +413,20 @@ int main(void)
 {
     log_init();
     utils_setup();
+    timers_init();
     softdevice_setup();
-    simulator_setup();
     profile_setup();
 
-    NRF_LOG_INFO("ANT+ Bicycle Power TX example started.");
+    init_stored_data();
+    init_scale();
+    init_imu();
+    init_power_compute();
+
+    application_timers_start();
 
     for (;;)
     {
         NRF_LOG_FLUSH();
         nrf_pwr_mgmt_run();
     }
-}
+}   

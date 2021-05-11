@@ -19,6 +19,12 @@ SECTIONS
   .mem_section_dummy_ram :
   {
   }
+  .fs_data :
+  {
+    PROVIDE(__start_fs_data = .);
+    KEEP(*(.fs_data))
+    PROVIDE(__stop_fs_data = .);
+  } > RAM
   .log_dynamic_data :
   {
     PROVIDE(__start_log_dynamic_data = .);

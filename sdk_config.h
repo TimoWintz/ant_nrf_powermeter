@@ -153,7 +153,7 @@
 // <e> ANT_BPWR_LOG_ENABLED - Enables general logging in the module.
 //==========================================================
 #ifndef ANT_BPWR_LOG_ENABLED
-#define ANT_BPWR_LOG_ENABLED 1
+#define ANT_BPWR_LOG_ENABLED 0
 #endif
 // <o> ANT_BPWR_LOG_LEVEL  - Default Severity level
  
@@ -512,6 +512,132 @@
 
 // <h> nRF_Drivers 
 
+// <e> NRF_FSTORAGE_ENABLED - nrf_fstorage - Flash abstraction library
+//==========================================================
+#ifndef NRF_FSTORAGE_ENABLED
+#define NRF_FSTORAGE_ENABLED 1
+#endif
+// <h> nrf_fstorage - Common settings
+
+// <i> Common settings to all fstorage implementations
+//==========================================================
+// <q> NRF_FSTORAGE_PARAM_CHECK_DISABLED  - Disable user input validation
+ 
+
+// <i> If selected, use ASSERT to validate user input.
+// <i> This effectively removes user input validation in production code.
+// <i> Recommended setting: OFF, only enable this setting if size is a major concern.
+
+#ifndef NRF_FSTORAGE_PARAM_CHECK_DISABLED
+#define NRF_FSTORAGE_PARAM_CHECK_DISABLED 0
+#endif
+
+// </h> 
+//==========================================================
+
+// <h> nrf_fstorage_sd - Implementation using the SoftDevice
+
+// <i> Configuration options for the fstorage implementation using the SoftDevice
+//==========================================================
+// <o> NRF_FSTORAGE_SD_QUEUE_SIZE - Size of the internal queue of operations 
+// <i> Increase this value if API calls frequently return the error @ref NRF_ERROR_NO_MEM.
+
+#ifndef NRF_FSTORAGE_SD_QUEUE_SIZE
+#define NRF_FSTORAGE_SD_QUEUE_SIZE 4
+#endif
+
+// <o> NRF_FSTORAGE_SD_MAX_RETRIES - Maximum number of attempts at executing an operation when the SoftDevice is busy 
+// <i> Increase this value if events frequently return the @ref NRF_ERROR_TIMEOUT error.
+// <i> The SoftDevice might fail to schedule flash access due to high BLE activity.
+
+#ifndef NRF_FSTORAGE_SD_MAX_RETRIES
+#define NRF_FSTORAGE_SD_MAX_RETRIES 8
+#endif
+
+// <o> NRF_FSTORAGE_SD_MAX_WRITE_SIZE - Maximum number of bytes to be written to flash in a single operation 
+// <i> This value must be a multiple of four.
+// <i> Lowering this value can increase the chances of the SoftDevice being able to execute flash operations in between radio activity.
+// <i> This value is bound by the maximum number of bytes that can be written to flash in a single call to @ref sd_flash_write.
+// <i> That is 1024 bytes for nRF51 ICs and 4096 bytes for nRF52 ICs.
+
+#ifndef NRF_FSTORAGE_SD_MAX_WRITE_SIZE
+#define NRF_FSTORAGE_SD_MAX_WRITE_SIZE 4096
+#endif
+
+// </h> 
+//==========================================================
+
+// </e>
+
+// <e> NRF_SDH_SOC_ENABLED - nrf_sdh_soc - SoftDevice SoC event handler
+//==========================================================
+#ifndef NRF_SDH_SOC_ENABLED
+#define NRF_SDH_SOC_ENABLED 1
+#endif
+// <h> SoC Observers - Observers and priority levels
+
+//==========================================================
+// <o> NRF_SDH_SOC_OBSERVER_PRIO_LEVELS - Total number of priority levels for SoC observers. 
+// <i> This setting configures the number of priority levels available for the SoC event handlers.
+// <i> The priority level of a handler determines the order in which it receives events, with respect to other handlers.
+
+#ifndef NRF_SDH_SOC_OBSERVER_PRIO_LEVELS
+#define NRF_SDH_SOC_OBSERVER_PRIO_LEVELS 2
+#endif
+// </h>
+// </e>
+
+// <e> NRF_SDH_SOC_LOG_ENABLED - Enable logging in SoftDevice handler (SoC) module.
+//==========================================================
+#ifndef NRF_SDH_SOC_LOG_ENABLED
+#define NRF_SDH_SOC_LOG_ENABLED 1
+#endif
+// <o> NRF_SDH_SOC_LOG_LEVEL  - Default Severity level
+ 
+// <0=> Off 
+// <1=> Error 
+// <2=> Warning 
+// <3=> Info 
+// <4=> Debug 
+
+#ifndef NRF_SDH_SOC_LOG_LEVEL
+#define NRF_SDH_SOC_LOG_LEVEL 3
+#endif
+
+// <o> NRF_SDH_SOC_INFO_COLOR  - ANSI escape code prefix.
+ 
+// <0=> Default 
+// <1=> Black 
+// <2=> Red 
+// <3=> Green 
+// <4=> Yellow 
+// <5=> Blue 
+// <6=> Magenta 
+// <7=> Cyan 
+// <8=> White 
+
+#ifndef NRF_SDH_SOC_INFO_COLOR
+#define NRF_SDH_SOC_INFO_COLOR 0
+#endif
+
+// <o> NRF_SDH_SOC_DEBUG_COLOR  - ANSI escape code prefix.
+ 
+// <0=> Default 
+// <1=> Black 
+// <2=> Red 
+// <3=> Green 
+// <4=> Yellow 
+// <5=> Blue 
+// <6=> Magenta 
+// <7=> Cyan 
+// <8=> White 
+
+#ifndef NRF_SDH_SOC_DEBUG_COLOR
+#define NRF_SDH_SOC_DEBUG_COLOR 0
+#endif
+
+// </e>
+
 //==========================================================
 // <e> GPIOTE_ENABLED - nrf_drv_gpiote - GPIOTE peripheral driver - legacy layer
 //==========================================================
@@ -707,6 +833,139 @@
 
 #ifndef NRFX_PRS_CONFIG_DEBUG_COLOR
 #define NRFX_PRS_CONFIG_DEBUG_COLOR 0
+#endif
+
+// </e>
+
+
+// </e>
+
+
+// <e> TWI0_ENABLED - Enable TWI0 instance
+//==========================================================
+#ifndef TWI0_ENABLED
+#define TWI0_ENABLED 1
+#endif
+// <q> TWI0_USE_EASY_DMA  - Use EasyDMA (if present)
+ 
+
+#ifndef TWI0_USE_EASY_DMA
+#define TWI0_USE_EASY_DMA 1
+#endif
+
+// </e>
+
+// <e> NRFX_TWIM_ENABLED - nrfx_twim - TWIM peripheral driver
+//==========================================================
+#ifndef NRFX_TWIM_ENABLED
+#define NRFX_TWIM_ENABLED 1
+#endif
+// <q> NRFX_TWIM0_ENABLED  - Enable TWIM0 instance
+ 
+
+#ifndef NRFX_TWIM0_ENABLED
+#define NRFX_TWIM0_ENABLED 1
+#endif
+
+
+// <e> NRFX_TWI_ENABLED - nrfx_twi - TWI peripheral driver
+//==========================================================
+#ifndef NRFX_TWI_ENABLED
+#define NRFX_TWI_ENABLED 0
+#endif
+// <q> NRFX_TWI0_ENABLED  - Enable TWI0 instance
+ 
+
+#ifndef NRFX_TWI0_ENABLED
+#define NRFX_TWI0_ENABLED 0
+#endif
+
+// <q> NRFX_TWI1_ENABLED  - Enable TWI1 instance
+ 
+
+#ifndef NRFX_TWI1_ENABLED
+#define NRFX_TWI1_ENABLED 0
+#endif
+
+// <o> NRFX_TWI_DEFAULT_CONFIG_FREQUENCY  - Frequency
+ 
+// <26738688=> 100k 
+// <67108864=> 250k 
+// <104857600=> 400k 
+
+#ifndef NRFX_TWI_DEFAULT_CONFIG_FREQUENCY
+#define NRFX_TWI_DEFAULT_CONFIG_FREQUENCY 26738688
+#endif
+
+// <q> NRFX_TWI_DEFAULT_CONFIG_HOLD_BUS_UNINIT  - Enables bus holding after uninit
+ 
+
+#ifndef NRFX_TWI_DEFAULT_CONFIG_HOLD_BUS_UNINIT
+#define NRFX_TWI_DEFAULT_CONFIG_HOLD_BUS_UNINIT 0
+#endif
+
+// <o> NRFX_TWI_DEFAULT_CONFIG_IRQ_PRIORITY  - Interrupt priority
+ 
+// <0=> 0 (highest) 
+// <1=> 1 
+// <2=> 2 
+// <3=> 3 
+// <4=> 4 
+// <5=> 5 
+// <6=> 6 
+// <7=> 7 
+
+#ifndef NRFX_TWI_DEFAULT_CONFIG_IRQ_PRIORITY
+#define NRFX_TWI_DEFAULT_CONFIG_IRQ_PRIORITY 6
+#endif
+
+// <e> NRFX_TWI_CONFIG_LOG_ENABLED - Enables logging in the module.
+//==========================================================
+#ifndef NRFX_TWI_CONFIG_LOG_ENABLED
+#define NRFX_TWI_CONFIG_LOG_ENABLED 0
+#endif
+// <o> NRFX_TWI_CONFIG_LOG_LEVEL  - Default Severity level
+ 
+// <0=> Off 
+// <1=> Error 
+// <2=> Warning 
+// <3=> Info 
+// <4=> Debug 
+
+#ifndef NRFX_TWI_CONFIG_LOG_LEVEL
+#define NRFX_TWI_CONFIG_LOG_LEVEL 3
+#endif
+
+// <o> NRFX_TWI_CONFIG_INFO_COLOR  - ANSI escape code prefix.
+ 
+// <0=> Default 
+// <1=> Black 
+// <2=> Red 
+// <3=> Green 
+// <4=> Yellow 
+// <5=> Blue 
+// <6=> Magenta 
+// <7=> Cyan 
+// <8=> White 
+
+#ifndef NRFX_TWI_CONFIG_INFO_COLOR
+#define NRFX_TWI_CONFIG_INFO_COLOR 0
+#endif
+
+// <o> NRFX_TWI_CONFIG_DEBUG_COLOR  - ANSI escape code prefix.
+ 
+// <0=> Default 
+// <1=> Black 
+// <2=> Red 
+// <3=> Green 
+// <4=> Yellow 
+// <5=> Blue 
+// <6=> Magenta 
+// <7=> Cyan 
+// <8=> White 
+
+#ifndef NRFX_TWI_CONFIG_DEBUG_COLOR
+#define NRFX_TWI_CONFIG_DEBUG_COLOR 0
 #endif
 
 // </e>
@@ -1424,7 +1683,7 @@
 // <e> NRF_LOG_BACKEND_RTT_ENABLED - nrf_log_backend_rtt - Log RTT backend
 //==========================================================
 #ifndef NRF_LOG_BACKEND_RTT_ENABLED
-#define NRF_LOG_BACKEND_RTT_ENABLED 0
+#define NRF_LOG_BACKEND_RTT_ENABLED 1
 #endif
 // <o> NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE - Size of buffer for partially processed strings. 
 // <i> Size of the buffer is a trade-off between RAM usage and processing.

@@ -28,6 +28,14 @@
                 "flash_sd",
             ],
             "group": "build",
+        },
+        {
+            "label": "jlink rtt",
+            "type" : "process",
+            "command" : "C:\\Program Files (x86)\\SEGGER\\JLink\\JLinkRTTViewer.exe",
+            "args": [
+                "--autoconnect",
+            ],
         }
     ]
 }

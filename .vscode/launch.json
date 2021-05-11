@@ -26,13 +26,14 @@
             "debugServerArgs": "-device nRF52832_xxAA -if SWD -speed 1000 -noir",
             "serverStarted": "Connected to target",
                     "logging": {
-                        "engineLogging": false,
+                        "engineLogging": true,
                         "exceptions": true,
                         "moduleLoad": true,
                     "programOutput": true,
                         "trace": false,
                         "traceResponse": false
                     }
+                    
         }
     ]
   }

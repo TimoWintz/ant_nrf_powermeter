@@ -43,11 +43,18 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/sensorsim/sensorsim.c \
   $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_uart.c \
   $(SDK_ROOT)/modules/nrfx/soc/nrfx_atomic.c \
+  $(SDK_ROOT)/components/libraries/twi_mngr/nrf_twi_mngr.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_gpiote.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/prs/nrfx_prs.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uart.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uarte.c \
-  $(SDK_ROOT)/components/ant/ant_profiles/ant_bpwr/ant_bpwr.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_spi.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_twi.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_twi_twim.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_twim.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_twis.c \
+  $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_twi.c \
+  $(PROJ_DIR)/ant_bpwr.c \
   $(SDK_ROOT)/components/ant/ant_profiles/ant_bpwr/pages/ant_bpwr_common_data.c \
   $(SDK_ROOT)/components/ant/ant_profiles/ant_bpwr/pages/ant_bpwr_page_1.c \
   $(SDK_ROOT)/components/ant/ant_profiles/ant_bpwr/pages/ant_bpwr_page_16.c \
@@ -61,6 +68,12 @@ SRC_FILES += \
   $(SDK_ROOT)/components/ant/ant_key_manager/ant_key_manager.c \
   $(SDK_ROOT)/components/ant/ant_state_indicator/ant_state_indicator.c \
   $(SDK_ROOT)/components/libraries/bsp/bsp.c \
+  $(SDK_ROOT)/components/libraries/fstorage/nrf_fstorage.c \
+  $(SDK_ROOT)/components/libraries/fstorage/nrf_fstorage_sd.c \
+  $(PROJ_DIR)/storage.c \
+  $(PROJ_DIR)/ADS1232.c \
+  $(PROJ_DIR)/LSM6DS3.c \
+  $(PROJ_DIR)/power.c \
   $(PROJ_DIR)/main.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
@@ -116,6 +129,8 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/mutex \
   $(SDK_ROOT)/components/libraries/pwr_mgmt \
   $(SDK_ROOT)/components/libraries/sensorsim \
+  $(SDK_ROOT)/components/libraries/twi_mngr/ \
+  $(SDK_ROOT)/components/libraries/fstorage
 
 # Libraries common to all targets
 LIB_FILES += \
@@ -141,7 +156,7 @@ CFLAGS += -DS212
 CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs
-CFLAGS += -Wall -Werror
+# CFLAGS += -Wall -Werror
 CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 # keep every function in a separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
@@ -216,10 +231,11 @@ flash: default
 erase:
 	nrfjprog -f nrf52 --eraseall
 
-SDK_CONFIG_FILE := ../config/sdk_config.h
+SDK_CONFIG_FILE := sdk_config.h
 CMSIS_CONFIG_TOOL := $(SDK_ROOT)/external_tools/cmsisconfig/CMSIS_Configuration_Wizard.jar
+JAVA := C:\Program Files\Java\jre1.8.0_291\bin\java.exe
 sdk_config:
-	java -jar $(CMSIS_CONFIG_TOOL) $(SDK_CONFIG_FILE)
+	$(JAVA) -jar $(CMSIS_CONFIG_TOOL) $(SDK_CONFIG_FILE)
 
 flash_sd:
 	@echo Flashing: ANT_s212_nrf52810_nrf52832_6.1.1.hex
