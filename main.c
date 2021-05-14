@@ -65,6 +65,8 @@
 #include "ant_bpwr.h"
 #include "ant_state_indicator.h"
 
+
+#include "nrf_delay.h"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
@@ -73,6 +75,7 @@
 #include "ADS1232.h"
 #include "power.h"
 #include "storage.h"
+#include "battery.h"
 
 #include "config.h"
 
@@ -105,6 +108,23 @@ static void init_stored_data() {
 }
 
 
+/** POWER COMPUTATION */
+
+static power_compute_t m_power_compute;
+
+static void init_power_compute() {
+    m_power_compute.accel = 0.0;
+
+    m_power_compute.force_cnt = 0;
+    m_power_compute.force_sum = 0.0;
+
+    m_power_compute.rev_cnt = 0;
+    m_power_compute.rev_timer_cnt = 0;
+
+    m_power_compute.crank_length = 0.001 * CRANK_LENGTH;
+}
+
+
 /** IMU */
 
 static imu_t m_imu;
@@ -120,6 +140,7 @@ static void init_imu() {
 /** SCALE */
 
 static scale_t m_scale;
+static bool wait_for_calibration = false;
 
 static void init_scale() {
     scale_begin(GAIN64, SLOW);
@@ -132,37 +153,20 @@ static void init_scale() {
     m_scale.calibrating = false;
 }
 
-static bool calibrate_scale_offset() {
-    int error = scale_read(&m_scale);
-    if (error) {
-        return false;
-    }
-    m_scale.offset = m_scale.raw;
-    return true;
+/** BATTERY STATUS */
+
+static int m_battery_status;
+
+static void init_battery() {
+    saadc_init();
 }
 
-/** POWER COMPUTATION */
-
-static power_compute_t m_power_compute;
-
-static void init_power_compute() {
-    m_power_compute.accel = 0.0;
-    m_power_compute.last_power = 0.0;
-
-    m_power_compute.force_cnt = 0;
-    m_power_compute.force_sum = 0.0;
-
-    m_power_compute.rev_cnt = 0;
-    m_power_compute.rev_timer_cnt = 0;
-
-    m_power_compute.crank_length = 0.001 * CRANK_LENGTH;
-}
 
 /** TIMERS */
 
 APP_TIMER_DEF(m_accel_timer_id);
 
-static void accel_timeout_handler(void * p_context)
+static void accel_timeout_handler(void * p_context) // Read acceleration
 {
     imu_update(&m_imu);
     power_update_accel(&m_power_compute, &m_imu);
@@ -170,17 +174,18 @@ static void accel_timeout_handler(void * p_context)
 
 APP_TIMER_DEF(m_scale_timer_id);
 
-static void scale_timeout_handler(void * p_context)
+static void scale_timeout_handler(void * p_context) // Read scale
 {
-    NRF_LOG_INFO("Reading scale")
     if (scale_available()) {
-        scale_read(&m_scale);   
+        scale_read(&m_scale);
     }
     else {
         NRF_LOG_WARNING("Scale unavailable !")
     }
     power_update_scale(&m_power_compute, &m_scale);
 }
+
+
 
 static void timers_init(void)
 {
@@ -256,6 +261,7 @@ void bsp_evt_handler(bsp_event_t event)
 void ant_bpwr_evt_handler(ant_bpwr_profile_t * p_profile, ant_bpwr_evt_t event)
 {
     nrf_pwr_mgmt_feed();
+    uint8_t bat;
 
     switch (event)
     {
@@ -270,11 +276,39 @@ void ant_bpwr_evt_handler(ant_bpwr_profile_t * p_profile, ant_bpwr_evt_t event)
         case ANT_BPWR_PAGE_80_UPDATED:
             /* fall through */
         case ANT_BPWR_PAGE_81_UPDATED:
-            power_update_pages(&m_power_compute, &m_ant_bpwr);
+            bat = get_battery_level();
+            if (bat >= 100) {
+                m_ant_bpwr.BPWR_PROFILE_battery_status = BATTERY_NEW;
+            }
+            else if (bat >= 80) {
+                m_ant_bpwr.BPWR_PROFILE_battery_status = BATTERY_GOOD;
+            }
+            else if (bat >= 60) {
+                m_ant_bpwr.BPWR_PROFILE_battery_status = BATTERY_OK;
+            }
+            else if (bat >= 40) {
+                m_ant_bpwr.BPWR_PROFILE_battery_status = BATTERY_LOW;
+            }
+            else {
+                m_ant_bpwr.BPWR_PROFILE_battery_status = BATTERY_CRITICAL;
+            }
             break;
 
         default:
             break;
+    }
+}
+
+typedef enum {
+    SET_SCALE = 1
+} custom_data_type_t;
+
+static void ant_process_custom_calib_data(uint8_t* data) {
+    int32_t* p_value = (int32_t*) &(data[1]);
+    if (data[0] == SET_SCALE) {
+        m_scale.scale = (float) *p_value;
+        wait_for_calibration = true;
+        
     }
 }
 
@@ -286,12 +320,8 @@ void ant_bpwr_calib_handler(ant_bpwr_profile_t * p_profile, ant_bpwr_page1_data_
     switch (p_page1->calibration_id)
     {
         case ANT_BPWR_CALIB_ID_MANUAL:
-            if (!calibrate_scale_offset()) {
-                m_ant_bpwr.BPWR_PROFILE_calibration_id     = ANT_BPWR_CALIB_ID_FAILED;
-                m_ant_bpwr.BPWR_PROFILE_general_calib_data = m_scale.offset;
-            }
-            m_ant_bpwr.BPWR_PROFILE_calibration_id     = ANT_BPWR_CALIB_ID_MANUAL_SUCCESS;
-            m_ant_bpwr.BPWR_PROFILE_general_calib_data = m_scale.offset;
+            wait_for_calibration = true;
+            m_scale.calibrating_offset = true;
             break;
 
         case ANT_BPWR_CALIB_ID_AUTO:
@@ -308,15 +338,15 @@ void ant_bpwr_calib_handler(ant_bpwr_profile_t * p_profile, ant_bpwr_page1_data_
 
         case ANT_BPWR_CALIB_ID_CUSTOM_UPDATE:
             m_ant_bpwr.BPWR_PROFILE_calibration_id = ANT_BPWR_CALIB_ID_CUSTOM_UPDATE_SUCCESS;
-            memcpy(m_ant_bpwr.BPWR_PROFILE_custom_calib_data, p_page1->data.custom_calib,
-                   sizeof (m_ant_bpwr.BPWR_PROFILE_custom_calib_data));
+            ant_process_custom_calib_data(p_page1->data.custom_calib);
             break;
 
         default:
             break;
     }
 }
-/** @snippet [ANT BPWR calibration] */
+
+
 
 /**
  * @brief Function for setup all thinks not directly associated with ANT stack/protocol.
@@ -399,6 +429,9 @@ static void profile_setup(void)
 
     m_ant_bpwr.BPWR_PROFILE_auto_zero_status = ANT_BPWR_AUTO_ZERO_OFF;
 
+    m_power_compute.page_16 = &m_ant_bpwr.page_16;
+    m_power_compute.common = &m_ant_bpwr.common;
+
     err_code = ant_bpwr_sens_open(&m_ant_bpwr);
     APP_ERROR_CHECK(err_code);
 
@@ -421,6 +454,7 @@ int main(void)
     init_scale();
     init_imu();
     init_power_compute();
+    init_battery();
 
     application_timers_start();
 
@@ -428,5 +462,13 @@ int main(void)
     {
         NRF_LOG_FLUSH();
         nrf_pwr_mgmt_run();
+        if (wait_for_calibration && !m_scale.calibrating_offset)
+        {
+            NRF_LOG_INFO("Calibration done!");
+            m_stored_data.params.scale_offset = m_scale.offset;
+            m_stored_data.params.scale_scale = m_scale.scale;
+            storage_write(&m_stored_data);
+            wait_for_calibration = false;
+        }
     }
 }   

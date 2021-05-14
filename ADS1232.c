@@ -150,5 +150,9 @@ int scale_read(scale_t* scale)
     scale->units = (float)(scale->raw - scale->offset) / scale->scale;
     NRF_LOG_INFO("Scale reading: %i (%i mN)", *value, (int) (1000 * scale->units));
     scale_unavailable = false;
+    if (scale->calibrating_offset) {
+      scale->offset = scale->raw;
+      scale->calibrating_offset = false;
+    }
     return NoERROR; // Success
 }

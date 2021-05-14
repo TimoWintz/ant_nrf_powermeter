@@ -3,7 +3,7 @@
     "version": "0.2.0",
     "configurations": [
          {
-             "preLaunchTask": "flash firmware",
+             "preLaunchTask": "flash firmware debug",
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",

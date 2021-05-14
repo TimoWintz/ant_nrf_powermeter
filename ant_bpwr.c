@@ -62,6 +62,7 @@ NRF_LOG_MODULE_REGISTER();
 #define BPWR_PAGE_16_INTERVAL_OFS  2   // Permissible offset
 #define COMMON_PAGE_80_INTERVAL    119 // Minimum: Interleave every 121 messages
 #define COMMON_PAGE_81_INTERVAL    120 // Minimum: Interleave every 121 messages
+#define COMMON_PAGE_82_INTERVAL    118 // Minimum: Interleave every 121 messages
 #define AUTO_ZERO_SUPPORT_INTERVAL 120 // Minimum: Interleave every 121 messages
 
 /**@brief Bicycle power message data layout structure. */
@@ -90,6 +91,7 @@ static ret_code_t ant_bpwr_init(ant_bpwr_profile_t         * p_profile,
     p_profile->page_18 = DEFAULT_ANT_BPWR_PAGE18();
     p_profile->page_80 = DEFAULT_ANT_COMMON_page80();
     p_profile->page_81 = DEFAULT_ANT_COMMON_page81();
+    p_profile->page_82 = DEFAULT_ANT_COMMON_page82();
 
     NRF_LOG_INFO("ANT B-PWR channel %u init", p_profile->channel_number);
     return ant_channel_init(p_channel_config);
@@ -170,7 +172,11 @@ static ant_bpwr_page_t next_page_number_get(ant_bpwr_profile_t * p_profile)
     }
     else
     {
-        if (p_bpwr_cb->message_counter == COMMON_PAGE_80_INTERVAL)
+        if (p_bpwr_cb->message_counter == COMMON_PAGE_82_INTERVAL)
+        {
+            page_number = ANT_BPWR_PAGE_82;
+        }
+        else if (p_bpwr_cb->message_counter == COMMON_PAGE_80_INTERVAL)
         {
             page_number = ANT_BPWR_PAGE_80;
         }
@@ -241,6 +247,10 @@ static void sens_message_encode(ant_bpwr_profile_t * p_profile, uint8_t * p_mess
 
         case ANT_COMMON_PAGE_81:
             ant_common_page_81_encode(p_bpwr_message_payload->page_payload, &(p_profile->page_81));
+            break;
+
+         case ANT_COMMON_PAGE_82:
+            ant_common_page_82_encode(p_bpwr_message_payload->page_payload, &(p_profile->page_82));
             break;
 
         default:

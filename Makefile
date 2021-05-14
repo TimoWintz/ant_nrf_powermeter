@@ -49,6 +49,7 @@ SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uart.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uarte.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_spi.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_saadc.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_twi.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_twi_twim.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_twim.c \
@@ -65,6 +66,7 @@ SRC_FILES += \
   $(SDK_ROOT)/components/ant/ant_channel_config/ant_channel_config.c \
   $(SDK_ROOT)/components/ant/ant_profiles/ant_common/pages/ant_common_page_80.c \
   $(SDK_ROOT)/components/ant/ant_profiles/ant_common/pages/ant_common_page_81.c \
+  $(PROJ_DIR)/ant_common_page_82.c \
   $(SDK_ROOT)/components/ant/ant_key_manager/ant_key_manager.c \
   $(SDK_ROOT)/components/ant/ant_state_indicator/ant_state_indicator.c \
   $(SDK_ROOT)/components/libraries/bsp/bsp.c \
@@ -135,14 +137,35 @@ INC_FOLDERS += \
 # Libraries common to all targets
 LIB_FILES += \
 
+ifeq ($(MMD), 1)
+CFLAGS += -O0 -ggdb -DDEBUG -DDEBUG_NRF
+CFLAGS += -DMMD
+ASMFLAGS += -mcpu=cortex-m4
+ASMFLAGS += -mthumb
+SRC_FILES += $(SDK_ROOT)/external/jlink_monitor_mode_debug/gcc/JLINK_MONITOR.c
+SRC_FILES += $(SDK_ROOT)/external/jlink_monitor_mode_debug/gcc/JLINK_MONITOR_ISR_SES.s
+INC_FOLDERS += $(SDK_ROOT)/external/jlink_monitor_mode_debug/gcc
+$(info Building for monitor debug mode.)
+endif
+
+ifeq ($(DEBUG), 1)
+CFLAGS += -O0 -ggdb3 -DDEBUG -DDEBUG_NRF
+$(info Building for halt debug mode.)
+endif
+
+ifeq ($(RELEASE), 1)
+CFLAGS += -O3 -g3
+ASMFLAGS += -g3
+$(info Building for release.)
+endif
+
 # Optimization flags
-OPT = -O3 -g3
+# OPT = -O0 -ggdb -DDEBUG -DDEBUG_NRF #DEBUG
+# OPT = -O3 -g3 # release
 # Uncomment the line below to enable link time optimization
 #OPT += -flto
 
 # C flags common to all targets
-CFLAGS += $(OPT)
-CFLAGS += -DDEBUG
 CFLAGS += -DANT_STACK_SUPPORT_REQD
 CFLAGS += -DAPP_TIMER_V2
 CFLAGS += -DAPP_TIMER_V2_RTC1_ENABLED
@@ -165,7 +188,6 @@ CFLAGS += -fno-builtin -fshort-enums
 # C++ flags common to all targets
 CXXFLAGS += $(OPT)
 # Assembler flags common to all targets
-ASMFLAGS += -g3
 ASMFLAGS += -mcpu=cortex-m4
 ASMFLAGS += -mthumb -mabi=aapcs
 ASMFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16

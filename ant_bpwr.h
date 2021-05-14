@@ -55,11 +55,13 @@
 #include "nrf_sdh_ant.h"
 #include "ant_channel_config.h"
 #include "ant_bpwr_pages.h"
+#include "ant_common_page_82.h"
 #include "sdk_errors.h"
+#include "app_timer.h"
 
 #define BPWR_DEVICE_TYPE            0x0Bu               ///< Device type reserved for ANT+ Bicycle Power.
 #define BPWR_ANTPLUS_RF_FREQ        0x39u               ///< Frequency, decimal 57 (2457 MHz).
-#define BPWR_MSG_PERIOD             8182u               ///< Message period, decimal 8182 (4.0049 Hz).
+#define BPWR_MSG_PERIOD             APP_TIMER_CLOCK_FREQ/4               ///< Message period, decimal 8182 (4.0049 Hz).
 
 #define BPWR_EXT_ASSIGN             0x00                ///< ANT ext assign (see Ext. Assign Channel Parameters in ant_parameters.h: @ref ant_parameters).
 #define BPWR_DISP_CHANNEL_TYPE      CHANNEL_TYPE_SLAVE  ///< Display Bicycle Power channel type.
@@ -176,7 +178,8 @@ typedef enum
     ANT_BPWR_PAGE_17 = 17, ///< Standard wheel torque main data page.
     ANT_BPWR_PAGE_18 = 18, ///< Standard crank torque main data page.
     ANT_BPWR_PAGE_80 = ANT_COMMON_PAGE_80,
-    ANT_BPWR_PAGE_81 = ANT_COMMON_PAGE_81
+    ANT_BPWR_PAGE_81 = ANT_COMMON_PAGE_81,
+    ANT_BPWR_PAGE_82 = ANT_COMMON_PAGE_82
 } ant_bpwr_page_t;
 
 /**@brief BPWR profile event type. */
@@ -238,6 +241,7 @@ struct ant_bpwr_profile_s
     ant_bpwr_page18_data_t   page_18;        ///< Page 18.
     ant_common_page80_data_t page_80;        ///< Page 80.
     ant_common_page81_data_t page_81;        ///< Page 81.
+    ant_common_page82_data_t page_82;        ///< Page 82.
     ant_bpwr_common_data_t   common;         ///< BPWR common data.
 };
 
@@ -267,6 +271,7 @@ struct ant_bpwr_profile_s
 #define BPWR_PROFILE_sw_revision_minor           page_81.sw_revision_minor
 #define BPWR_PROFILE_sw_revision_major           page_81.sw_revision_major
 #define BPWR_PROFILE_serial_number               page_81.serial_number
+#define BPWR_PROFILE_battery_status              page_82.battery_status
 /** @} */
 
 /**@brief Function for initializing the ANT Bicycle Power Display profile instance.

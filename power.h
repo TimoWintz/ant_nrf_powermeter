@@ -10,8 +10,8 @@ typedef struct {
 } filter_t;
 
 typedef struct {
-    uint16_t last_power;
-    uint16_t last_cadence;
+    ant_bpwr_common_data_t* common;  
+    ant_bpwr_page16_data_t* page_16;
 
     float accel;
 

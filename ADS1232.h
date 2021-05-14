@@ -38,6 +38,7 @@ typedef struct {
 	int offset;
 	float scale;
 	bool calibrating;
+	bool calibrating_offset;
 } scale_t;
 
 

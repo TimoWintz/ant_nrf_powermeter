@@ -19,8 +19,33 @@ typedef union
     PARAM_T vec[N_PARAMETERS];
 } stored_data_t;
 
-static void callback(nrf_fstorage_evt_t * p_evt) {
+static void fstorage_evt_handler(nrf_fstorage_evt_t * p_evt)
+{
+    if (p_evt->result != NRF_SUCCESS)
+    {
+        NRF_LOG_INFO("--> Event received: ERROR while executing an fstorage operation.");
+        return;
+    }
+
+    switch (p_evt->id)
+    {
+        case NRF_FSTORAGE_EVT_WRITE_RESULT:
+        {
+            NRF_LOG_INFO("--> Event received: wrote %d bytes at address 0x%x.",
+                         p_evt->len, p_evt->addr);
+        } break;
+
+        case NRF_FSTORAGE_EVT_ERASE_RESULT:
+        {
+            NRF_LOG_INFO("--> Event received: erased %d page from address 0x%x.",
+                         p_evt->len, p_evt->addr);
+        } break;
+
+        default:
+            break;
+    }
 }
+
 
 static uint32_t nrf5_flash_end_addr_get()
 {
@@ -34,10 +59,19 @@ static uint32_t nrf5_flash_end_addr_get()
 
 NRF_FSTORAGE_DEF(nrf_fstorage_t storage_instance) =
 {
-    .evt_handler    = callback,
+    .evt_handler    = fstorage_evt_handler,
     .start_addr     = 0x70000,
     .end_addr       = 0x80000,
 };
+
+void wait_for_flash_ready()
+{
+    /* While fstorage is busy, sleep and wait for an event. */
+    while (nrf_fstorage_is_busy(&storage_instance))
+    {
+
+    }
+}
 
 
 static void storage_init()
@@ -55,45 +89,48 @@ static void storage_init()
 
 }
 
+static PARAM_T data[N_PARAMETERS+1];
+
 static void storage_read(stored_data_t* p_data)
 {
-  static uint32_t number;
   ret_code_t rc = nrf_fstorage_read(
       &storage_instance,   /* The instance to use. */
       FLASH_ADDR,     /* The address in flash where to read data from. */
-      &number,        /* A buffer to copy the data into. */
-      sizeof(number)  /* Lenght of the data, in bytes. */
+      data,        /* A buffer to copy the data into. */
+      (N_PARAMETERS+1)*sizeof(PARAM_T)  /* Lenght of the data, in bytes. */
   );
   if (rc == NRF_SUCCESS)
   {
-      if (number != HEADER_IDENTIFIER) {
+      if (data[0] != HEADER_IDENTIFIER) {
       NRF_LOG_INFO("No data in memory");
         return;
       }
   }
-  else
-  {
-      APP_ERROR_CHECK(rc);
-  }
-  size_t offset = sizeof(number);
+  APP_ERROR_CHECK(rc);
   for (int i = 0; i < N_PARAMETERS; i++) {
-    rc = nrf_fstorage_read(
-        &storage_instance,   /* The instance to use. */
-        FLASH_ADDR + offset,     /* The address in flash where to read data from. */
-        &(p_data->vec[i]),        /* A buffer to copy the data into. */
-        sizeof(number)  /* Lenght of the data, in bytes. */
-    );
-    if (rc == NRF_SUCCESS)
-    {
-      PARAM_T x = p_data->vec[i];
-      NRF_LOG_INFO("Read parameter : %i", x);
-    }
-    else
-    {
-      APP_ERROR_CHECK(rc);
-    }
-    offset += sizeof(PARAM_T);
+    p_data->vec[i] = data[i+1];
+      NRF_LOG_INFO("Read parameter : %i", data[i+1]);
   }
 }
+
+
+static void storage_write(stored_data_t* p_data)
+{
+  
+  data[0] = HEADER_IDENTIFIER;
+  for (int i = 0; i < N_PARAMETERS; i++) {
+    data[i+1] = p_data->vec[i];
+  }
+  ret_code_t rc = nrf_fstorage_write(
+      &storage_instance,   /* The instance to use. */
+      FLASH_ADDR,     /* The address in flash where to read data from. */
+      data,        /* A buffer to copy the data into. */
+      (N_PARAMETERS+1)*sizeof(PARAM_T),  /* Lenght of the data, in bytes. */
+      NULL
+  );
+    wait_for_flash_ready();
+  APP_ERROR_CHECK(rc);
+}
+
 
 #endif

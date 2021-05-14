@@ -12,11 +12,22 @@
             "group": "build",
         },
         {
-            "label": "flash firmware",
+            "label": "flash firmware debug",
             "type": "shell",
             "command": "make",
             "args": [
                 "flash",
+                "DEBUG=1"
+            ],
+            "group": "build",
+        },
+        {
+            "label": "flash firmware release",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "flash",
+                "RELEASE=1"
             ],
             "group": "build",
         },
@@ -32,9 +43,8 @@
         {
             "label": "jlink rtt",
             "type" : "process",
-            "command" : "C:\\Program Files (x86)\\SEGGER\\JLink\\JLinkRTTViewer.exe",
+            "command" : "C:\\Program Files (x86)\\SEGGER\\JLink\\JLinkRTTClient.exe",
             "args": [
-                "--autoconnect",
             ],
         }
     ]
