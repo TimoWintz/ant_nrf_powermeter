@@ -259,7 +259,8 @@ JAVA := C:\Program Files\Java\jre1.8.0_291\bin\java.exe
 sdk_config:
 	$(JAVA) -jar $(CMSIS_CONFIG_TOOL) $(SDK_CONFIG_FILE)
 
+SD_HEX := ANT_s212_nrf52_7.0.1.hex
 flash_sd:
-	@echo Flashing: ANT_s212_nrf52810_nrf52832_6.1.1.hex
-	nrfjprog -f nrf52 --program ANT_s212_nrf52810_nrf52832_6.1.1.hex --chiperase
+	@echo Flashing: $(SD_HEX)
+	nrfjprog -f nrf52 --program $(SD_HEX) --chiperase
 	nrfjprog -f nrf52 --reset

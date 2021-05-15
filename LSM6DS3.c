@@ -37,6 +37,11 @@
 #define LSM6DS3_OUT_L_TEMP         0X20
 #define LSM6DS3_OUT_H_TEMP         0X21
 
+#define LSM6DS3_TAP_CFG 0X58
+#define LSM6DS3_WAKE_UP_DUR 0X5C
+#define LSM6DS3_WAKE_UP_THS 0X5B
+#define LSM6DS3_MD1_CFG 0X5E
+
 
 #define SDA_PIN NRF_GPIO_PIN_MAP(0, 27)
 #define SCL_PIN NRF_GPIO_PIN_MAP(0, 28)
@@ -258,4 +263,20 @@ void imu_update(imu_t* p_imu) {
       imu_read_temperature(buffer);
       p_imu->temp_c = temp_raw_to_c(buffer[0]);
   }
+}
+
+void imu_wake_up_interrupt() {
+ write_register(LSM6DS3_CTRL2_G, 0x00);
+ write_register(LSM6DS3_WAKE_UP_DUR, 0x00);
+ write_register(LSM6DS3_WAKE_UP_THS, 0x02);
+ write_register(LSM6DS3_TAP_CFG, 0b00010010);
+ write_register(LSM6DS3_CTRL1_XL, 0x70);
+ nrf_delay_ms(4);
+ write_register(LSM6DS3_CTRL1_XL, 0x10);
+ write_register(LSM6DS3_MD1_CFG, 0x20);
+}
+
+void imu_power_down() {
+  write_register(LSM6DS3_CTRL2_G, 0x00);
+  write_register(LSM6DS3_CTRL1_XL, 0x00);
 }

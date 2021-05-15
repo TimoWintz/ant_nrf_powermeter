@@ -1,7 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define BATTERY_MAX_VOLTAGE 3
-#define BATTERY_MIN_VOLTAGE 1
+#define SLEEP_TIMEOUT_S 180 // sleep after 3 min
+#define IMU_INT1_PIN NRF_GPIO_PIN_MAP(0, 25)
 
 #endif

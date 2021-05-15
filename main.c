@@ -64,6 +64,7 @@
 #include "ant_key_manager.h"
 #include "ant_bpwr.h"
 #include "ant_state_indicator.h"
+#include "ant_interface.h"
 
 
 #include "nrf_delay.h"
@@ -97,6 +98,8 @@
 
 #define CRANK_LENGTH 175
 
+
+
 /** DATA STORAGE */
 
 static stored_data_t m_stored_data;
@@ -122,6 +125,7 @@ static void init_power_compute() {
     m_power_compute.rev_timer_cnt = 0;
 
     m_power_compute.crank_length = 0.001 * CRANK_LENGTH;
+    m_power_compute.rev_timer_cnt = app_timer_cnt_get();
 }
 
 
@@ -153,6 +157,47 @@ static void init_scale() {
     m_scale.calibrating = false;
 }
 
+/** SLEEP MODE */
+
+
+static void sleep_mode_enter(bool wake_up)
+{
+    NRF_LOG_INFO("Entering sleep mode");
+    NRF_LOG_FLUSH();
+
+    scale_power_down();
+
+
+    uint32_t err_code = bsp_indication_set(BSP_INDICATE_IDLE);
+    APP_ERROR_CHECK(err_code);
+
+    if (wake_up) {
+        // Prepare wakeup buttons.
+        imu_wake_up_interrupt();
+        nrf_gpio_cfg_input (IMU_INT1_PIN, NRF_GPIO_PIN_PULLDOWN);
+        while (true) {
+            uint32_t val = nrf_gpio_pin_read(IMU_INT1_PIN);
+            if (val > 0) {
+                NRF_LOG_INFO("HIGH");
+            }
+            else {
+                break;
+            }
+            NRF_LOG_FLUSH();
+            nrf_delay_ms(100);
+        }
+        nrf_gpio_cfg_sense_input(IMU_INT1_PIN, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_SENSE_HIGH);
+    }
+    else {
+        imu_power_down();
+    }
+
+
+    // Go to system-off mode (this function will not return; wakeup will cause a reset).
+    err_code = sd_power_system_off();
+    APP_ERROR_CHECK(err_code);
+}
+
 /** BATTERY STATUS */
 
 static int m_battery_status;
@@ -164,12 +209,17 @@ static void init_battery() {
 
 /** TIMERS */
 
+static bool wait_for_sleep = false;
+
 APP_TIMER_DEF(m_accel_timer_id);
 
 static void accel_timeout_handler(void * p_context) // Read acceleration
 {
     imu_update(&m_imu);
     power_update_accel(&m_power_compute, &m_imu);
+    if (app_timer_cnt_get() - m_power_compute.rev_timer_cnt > APP_TIMER_TICKS(SLEEP_TIMEOUT_S * 1000)) {
+        wait_for_sleep = true;
+    }
 }
 
 APP_TIMER_DEF(m_scale_timer_id);
@@ -370,6 +420,8 @@ static void utils_setup(void)
 
     err_code = ant_state_indicator_init(m_ant_bpwr.channel_number, BPWR_SENS_CHANNEL_TYPE);
     APP_ERROR_CHECK(err_code);
+
+    
 }
 
 /**
@@ -416,6 +468,9 @@ static void profile_setup(void)
     err_code = ant_bpwr_sens_init(&m_ant_bpwr,
                                   BPWR_SENS_CHANNEL_CONFIG(m_ant_bpwr),
                                   BPWR_SENS_PROFILE_CONFIG(m_ant_bpwr));
+    APP_ERROR_CHECK(err_code);
+
+    err_code = sd_ant_channel_radio_tx_power_set(m_ant_bpwr.channel_number, RADIO_TX_POWER_LVL_4, 0);
     APP_ERROR_CHECK(err_code);
 
     // fill manufacturer's common data page.
@@ -469,6 +524,10 @@ int main(void)
             m_stored_data.params.scale_scale = m_scale.scale;
             storage_write(&m_stored_data);
             wait_for_calibration = false;
+        }
+        if (wait_for_sleep)
+        {
+            sleep_mode_enter(true);
         }
     }
 }   

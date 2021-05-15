@@ -24,5 +24,7 @@ typedef struct
 bool imu_begin(imu_t* p_imu);
 void imu_end(imu_t* p_imu);
 void imu_update(imu_t* p_imu);
+void imu_wake_up_interrupt();
+void imu_power_down();
 
 #endif

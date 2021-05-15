@@ -61,7 +61,7 @@
 
 #define BPWR_DEVICE_TYPE            0x0Bu               ///< Device type reserved for ANT+ Bicycle Power.
 #define BPWR_ANTPLUS_RF_FREQ        0x39u               ///< Frequency, decimal 57 (2457 MHz).
-#define BPWR_MSG_PERIOD             APP_TIMER_CLOCK_FREQ/4               ///< Message period, decimal 8182 (4.0049 Hz).
+#define BPWR_MSG_PERIOD             8182 // APP_TIMER_CLOCK_FREQ/4               ///< Message period, decimal 8182 (4.0049 Hz).
 
 #define BPWR_EXT_ASSIGN             0x00                ///< ANT ext assign (see Ext. Assign Channel Parameters in ant_parameters.h: @ref ant_parameters).
 #define BPWR_DISP_CHANNEL_TYPE      CHANNEL_TYPE_SLAVE  ///< Display Bicycle Power channel type.
