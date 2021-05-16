@@ -11,6 +11,7 @@ typedef struct {
 
 typedef struct {
     ant_bpwr_common_data_t* common;  
+    ant_bpwr_page1_data_t* page_1;
     ant_bpwr_page16_data_t* page_16;
 
     float accel;
@@ -22,6 +23,9 @@ typedef struct {
     uint16_t rev_cnt;
     float rev_time;
     uint32_t rev_timer_cnt;
+
+    uint32_t az_cnt;
+    float az_last_force;
 } power_compute_t;
 
 void power_update_accel(power_compute_t * p_power_compute, imu_t * p_imu);

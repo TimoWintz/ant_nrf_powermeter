@@ -72,7 +72,6 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/bsp/bsp.c \
   $(SDK_ROOT)/components/libraries/fstorage/nrf_fstorage.c \
   $(SDK_ROOT)/components/libraries/fstorage/nrf_fstorage_sd.c \
-  $(PROJ_DIR)/storage.c \
   $(PROJ_DIR)/ADS1232.c \
   $(PROJ_DIR)/LSM6DS3.c \
   $(PROJ_DIR)/power.c \
@@ -259,7 +258,7 @@ JAVA := C:\Program Files\Java\jre1.8.0_291\bin\java.exe
 sdk_config:
 	$(JAVA) -jar $(CMSIS_CONFIG_TOOL) $(SDK_CONFIG_FILE)
 
-SD_HEX := ANT_s212_nrf52_7.0.1.hex
+SD_HEX := ANT_s212_nrf52810_nrf52832_6.1.1.hex
 flash_sd:
 	@echo Flashing: $(SD_HEX)
 	nrfjprog -f nrf52 --program $(SD_HEX) --chiperase

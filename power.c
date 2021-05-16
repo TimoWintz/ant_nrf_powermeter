@@ -2,6 +2,7 @@
 
 #include "app_timer.h"
 #include "nrf_log.h"
+#include "config.h"
 # define M_PI           3.14159265358979323846  /* pi */
 
 
@@ -53,4 +54,19 @@ void power_update_scale(power_compute_t * p_power_compute, scale_t * p_scale)
 {
     p_power_compute->force_sum += p_scale->units;
     p_power_compute->force_cnt++;
+    if (p_power_compute->page_1->auto_zero_status == ANT_BPWR_AUTO_ZERO_ON) {
+        if (p_scale->units - p_power_compute->az_last_force < AUTO_ZERO_TOLERANCE &&
+            p_power_compute->az_last_force - p_scale->units < AUTO_ZERO_TOLERANCE) {
+            p_power_compute->az_cnt++;
+            if (p_power_compute->az_cnt > (SCALE_HZ * AUTO_ZERO_INTERVAL) / 1000) {
+                NRF_LOG_INFO("Setting auto zero.")
+                p_scale->offset = p_scale->raw;
+                p_power_compute->az_cnt = 0;
+            }
+        }
+        else {
+            p_power_compute->az_cnt = 0;
+        }
+        p_power_compute->az_last_force = p_scale->units;
+    }
 }

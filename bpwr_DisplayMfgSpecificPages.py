@@ -7,6 +7,9 @@
 
 # This scripts implements and decodes a received manufacturer specific page
 
+# CALIBRATION INFO
+# WEIGHT : 12.27kg = 120.4N
+
 import clr
 import time
 clr.AddReference('ANT+ProfileLib')
@@ -30,7 +33,7 @@ page = SetCustomCalibrationParameterPage()
 byte_0 = Byte(1)
 
 # bytes 1-4 : values (little endian 32 bits int)
-bytes_value = BitConverter.GetBytes(Int32(2000))
+bytes_value = BitConverter.GetBytes(Int32(1971))
 
 # byte 5 : reserved future use
 byte_5 = Byte(0)

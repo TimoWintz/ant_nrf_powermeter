@@ -82,7 +82,7 @@
 
 #define ACCEL_MEAS_INTERVAL                APP_TIMER_TICKS(1000/ACCEL_HZ)
 
-#define SCALE_HZ 10
+
 #define SCALE_MEAS_INTERVAL                APP_TIMER_TICKS(1000/SCALE_HZ)
 
 #define DEFAULT_SCALE_OFFSET 70000
@@ -106,7 +106,7 @@ static stored_data_t m_stored_data;
 static void init_stored_data() {
     m_stored_data.params.scale_offset = DEFAULT_SCALE_OFFSET;
     m_stored_data.params.scale_scale = DEFAULT_SCALE_SCALE;
-    storage_init();
+    // storage_init();
     storage_read(&m_stored_data);
 }
 
@@ -126,6 +126,8 @@ static void init_power_compute() {
 
     m_power_compute.crank_length = 0.001 * CRANK_LENGTH;
     m_power_compute.rev_timer_cnt = app_timer_cnt_get();
+
+    m_power_compute.az_cnt = 0;
 }
 
 
@@ -482,8 +484,9 @@ static void profile_setup(void)
                                            BPWR_SW_REVISION_MINOR,
                                            BPWR_SERIAL_NUMBER);
 
-    m_ant_bpwr.BPWR_PROFILE_auto_zero_status = ANT_BPWR_AUTO_ZERO_OFF;
+    m_ant_bpwr.BPWR_PROFILE_auto_zero_status = ANT_BPWR_AUTO_ZERO_ON;
 
+    m_power_compute.page_1 = &m_ant_bpwr.page_1;
     m_power_compute.page_16 = &m_ant_bpwr.page_16;
     m_power_compute.common = &m_ant_bpwr.common;
 
@@ -524,6 +527,7 @@ int main(void)
             m_stored_data.params.scale_scale = m_scale.scale;
             storage_write(&m_stored_data);
             wait_for_calibration = false;
+            m_ant_bpwr.BPWR_PROFILE_calibration_id = ANT_BPWR_CALIB_ID_MANUAL_SUCCESS;
         }
         if (wait_for_sleep)
         {
