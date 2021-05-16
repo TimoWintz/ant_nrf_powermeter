@@ -66,7 +66,7 @@ void power_update_scale(power_compute_t * p_power_compute, scale_t * p_scale)
         }
         else {
             p_power_compute->az_cnt = 0;
+            p_power_compute->az_last_force = p_scale->units;
         }
-        p_power_compute->az_last_force = p_scale->units;
     }
 }
