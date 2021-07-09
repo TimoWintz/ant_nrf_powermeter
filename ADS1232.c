@@ -146,9 +146,8 @@ int scale_read(scale_t* scale)
       nrf_gpio_pin_clear(SCLK_PIN);
              
     }
-    while(scale_available());
     scale->units = (float)(scale->raw - scale->offset) / scale->scale;
-    NRF_LOG_INFO("Scale reading: %i (%i mN)", *value, (int) (1000 * scale->units));
+    NRF_LOG_INFO("Scale reading: %i (%i mN, T= %i°C)", *value, (int) (1000 * scale->units), (int) scale->temp_c);
     scale_unavailable = false;
     if (scale->calibrating_offset) {
       scale->offset = scale->raw;

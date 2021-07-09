@@ -61,6 +61,7 @@
 #include "nrf_pwr_mgmt.h"
 #include "nrf_sdh.h"
 #include "nrf_sdh_ant.h"
+#include "nrf_sdh_soc.h"
 #include "ant_key_manager.h"
 #include "ant_bpwr.h"
 #include "ant_state_indicator.h"
@@ -128,6 +129,10 @@ static void init_power_compute() {
     m_power_compute.rev_timer_cnt = app_timer_cnt_get();
 
     m_power_compute.az_cnt = 0;
+
+    m_power_compute.rot_deg = 0.0;
+    m_power_compute.dps_sum = 0.0;
+    m_power_compute.dps_cnt = 0;
 }
 
 
@@ -136,17 +141,27 @@ static void init_power_compute() {
 static imu_t m_imu;
 
 static void init_imu() {
+
+    #if USE_GYRO
+    m_imu.accel_enabled = false;
+    m_imu.gyro_enabled = true;
+    m_imu.temp_enabled = true;
+
+    imu_begin(&m_imu);
+    #else
     m_imu.accel_enabled = true;
     m_imu.gyro_enabled = false;
     m_imu.temp_enabled = true;
 
     imu_begin(&m_imu);
+    #endif
 }
 
 /** SCALE */
 
 static scale_t m_scale;
 static bool wait_for_calibration = false;
+static bool custom_calibration = false;
 
 static void init_scale() {
     scale_begin(GAIN64, SLOW);
@@ -229,6 +244,7 @@ APP_TIMER_DEF(m_scale_timer_id);
 static void scale_timeout_handler(void * p_context) // Read scale
 {
     if (scale_available()) {
+        m_scale.temp_c = m_imu.temp_c;
         scale_read(&m_scale);
     }
     else {
@@ -360,7 +376,7 @@ static void ant_process_custom_calib_data(uint8_t* data) {
     if (data[0] == SET_SCALE) {
         m_scale.scale = (float) *p_value;
         wait_for_calibration = true;
-        
+        custom_calibration = true;
     }
 }
 
@@ -373,6 +389,7 @@ void ant_bpwr_calib_handler(ant_bpwr_profile_t * p_profile, ant_bpwr_page1_data_
     {
         case ANT_BPWR_CALIB_ID_MANUAL:
             wait_for_calibration = true;
+            custom_calibration = false;
             m_scale.calibrating_offset = true;
             break;
 
@@ -390,6 +407,8 @@ void ant_bpwr_calib_handler(ant_bpwr_profile_t * p_profile, ant_bpwr_page1_data_
 
         case ANT_BPWR_CALIB_ID_CUSTOM_UPDATE:
             m_ant_bpwr.BPWR_PROFILE_calibration_id = ANT_BPWR_CALIB_ID_CUSTOM_UPDATE_SUCCESS;
+            //memcpy(p_page1->data.custom_calib, m_ant_bpwr.BPWR_PROFILE_custom_calib_data,
+            //       sizeof (m_ant_bpwr.BPWR_PROFILE_custom_calib_data));
             ant_process_custom_calib_data(p_page1->data.custom_calib);
             break;
 
@@ -398,6 +417,20 @@ void ant_bpwr_calib_handler(ant_bpwr_profile_t * p_profile, ant_bpwr_page1_data_
     }
 }
 
+
+static void soc_evt_handler(uint32_t evt_id, void *p_context)
+{
+    if (evt_id == NRF_EVT_FLASH_OPERATION_SUCCESS) {
+        flash_busy = false;
+        flash_write_success = true;
+    }
+    else if (evt_id == NRF_EVT_FLASH_OPERATION_ERROR) {
+        flash_busy = false;
+        flash_write_success = false;
+    }
+}
+
+NRF_SDH_SOC_OBSERVER(m_storage_observer, 1, soc_evt_handler, NULL);
 
 
 /**
@@ -423,7 +456,8 @@ static void utils_setup(void)
     err_code = ant_state_indicator_init(m_ant_bpwr.channel_number, BPWR_SENS_CHANNEL_TYPE);
     APP_ERROR_CHECK(err_code);
 
-    
+
+
 }
 
 /**
@@ -454,6 +488,12 @@ static void softdevice_setup(void)
     APP_ERROR_CHECK(err_code);
 
     err_code = ant_plus_key_set(ANTPLUS_NETWORK_NUM);
+    APP_ERROR_CHECK(err_code);
+
+    /* Request Softdevice to turn on Crystal oscillator to test if SoC events are
+    forwarded to the application. _SOC_ observers should get notified of the
+    NRF_EVT_HFCLKSTARTED event after this call. */
+    err_code = sd_clock_hfclk_request();
     APP_ERROR_CHECK(err_code);
 }
 
@@ -502,6 +542,7 @@ static void profile_setup(void)
  */
 int main(void)
 {
+
     log_init();
     utils_setup();
     timers_init();
@@ -522,12 +563,29 @@ int main(void)
         nrf_pwr_mgmt_run();
         if (wait_for_calibration && !m_scale.calibrating_offset)
         {
-            NRF_LOG_INFO("Calibration done!");
+            app_timer_pause();
+            if (!custom_calibration) {
+                #if USE_GYRO
+                imu_calibrate_gyro();
+                m_stored_data.params.gyro_offset = imu_get_offset();
+                #endif
+                NRF_LOG_INFO("Calibration done!");
+            }
             m_stored_data.params.scale_offset = m_scale.offset;
             m_stored_data.params.scale_scale = m_scale.scale;
-            storage_write(&m_stored_data);
+            for (int i = 0; i < FLASH_WRITE_MAX_TRIES; i++) {
+                if (storage_write(&m_stored_data)) {
+                    m_ant_bpwr.BPWR_PROFILE_general_calib_data = m_scale.offset / 100;
+                    break;
+                }
+                else {
+                    m_ant_bpwr.BPWR_PROFILE_calibration_id = ANT_BPWR_CALIB_ID_FAILED;  
+                }
+            }
+            m_ant_bpwr._cb.p_sens_cb->calib_stat = BPWR_SENS_CALIB_READY;
             wait_for_calibration = false;
-            m_ant_bpwr.BPWR_PROFILE_calibration_id = ANT_BPWR_CALIB_ID_MANUAL_SUCCESS;
+            custom_calibration = false;
+            app_timer_resume();
         }
         if (wait_for_sleep)
         {

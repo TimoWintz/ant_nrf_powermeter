@@ -1,6 +1,13 @@
 PROJECT_NAME     := ant_bpwr_tx_pca10040_s212
 TARGETS          := nrf52832_xxaa
-OUTPUT_DIRECTORY := _build
+
+ifeq ($(DEBUG), 1)
+OUTPUT_DIRECTORY := _debug
+else
+OUTPUT_DIRECTORY := _release
+endif
+
+# OUTPUT_DIRECTORY := _build_test
 
 SDK_ROOT := E:\Downloads\nRF5_SDK_17.0.2_d674dde\nRF5_SDK_17.0.2_d674dde
 PROJ_DIR := .
@@ -82,6 +89,7 @@ SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52.c \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh.c \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh_ant.c \
+  $(SDK_ROOT)/components/softdevice/common/nrf_sdh_soc.c \
 
 # Include folders common to all targets
 INC_FOLDERS += \
@@ -150,9 +158,7 @@ endif
 ifeq ($(DEBUG), 1)
 CFLAGS += -O0 -ggdb3 -DDEBUG -DDEBUG_NRF
 $(info Building for halt debug mode.)
-endif
-
-ifeq ($(RELEASE), 1)
+else
 CFLAGS += -O3 -g3
 ASMFLAGS += -g3
 $(info Building for release.)

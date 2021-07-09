@@ -26,6 +26,10 @@ typedef struct {
 
     uint32_t az_cnt;
     float az_last_force;
+
+    float rot_deg;
+    float dps_sum;
+    uint32_t dps_cnt;
 } power_compute_t;
 
 void power_update_accel(power_compute_t * p_power_compute, imu_t * p_imu);

@@ -33,7 +33,7 @@ page = SetCustomCalibrationParameterPage()
 byte_0 = Byte(1)
 
 # bytes 1-4 : values (little endian 32 bits int)
-bytes_value = BitConverter.GetBytes(Int32(1971))
+bytes_value = BitConverter.GetBytes(Int32(-2300))
 
 # byte 5 : reserved future use
 byte_5 = Byte(0)

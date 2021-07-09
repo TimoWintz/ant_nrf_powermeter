@@ -7,14 +7,10 @@
 typedef struct 
 {
     bool accel_enabled;
-    float ax_g;
-    float ay_g;
-    float az_g;
+    float accel_g[3];
 
     bool gyro_enabled;
-    float gx_dps;
-    float gy_dps;
-    float gz_dps;
+    float gyro_dps[3];
 
     bool temp_enabled;
     float temp_c;
@@ -26,5 +22,7 @@ void imu_end(imu_t* p_imu);
 void imu_update(imu_t* p_imu);
 void imu_wake_up_interrupt();
 void imu_power_down();
+void imu_calibrate_gyro();
+int32_t imu_get_offset();
 
 #endif

@@ -8,7 +8,7 @@
 #include "nrf_sdh_soc.h"
 
 #define HEADER_IDENTIFIER 0xB000BA
-#define N_PARAMETERS 2
+#define N_PARAMETERS 3
 #define FLASH_ADDR 0x70000
 
 typedef int32_t PARAM_T;
@@ -18,6 +18,7 @@ typedef union
     struct {
       PARAM_T scale_offset;
       PARAM_T scale_scale;
+      PARAM_T gyro_offset;
     } params;
     PARAM_T vec[N_PARAMETERS];
 } stored_data_t;
@@ -33,6 +34,9 @@ static uint32_t nrf5_flash_end_addr_get()
 }
 
 static PARAM_T data[N_PARAMETERS+1];
+
+static bool flash_busy = false;
+static bool flash_write_success = true;
 
 static void storage_read(stored_data_t* p_data)
 {
@@ -51,34 +55,42 @@ static void storage_read(stored_data_t* p_data)
 }
 
 
-static void storage_write(stored_data_t* p_data)
+static bool storage_write(stored_data_t* p_data)
 {
+  flash_busy = true;
+  sd_flash_page_erase(FLASH_ADDR / NRF_FICR->CODEPAGESIZE);
+  while (flash_busy) { }
   
   data[0] = HEADER_IDENTIFIER;
   for (int i = 0; i < N_PARAMETERS; i++) {
     data[i+1] = p_data->vec[i];
   }
+  flash_busy = true;
   uint32_t err_code = sd_flash_write	(	(uint32_t *) FLASH_ADDR,
   (uint32_t *) data,
   (N_PARAMETERS+1)
   );
-  APP_ERROR_CHECK(err_code);
-  uint32_t * 	p_evt_id;
-  do {
-    sd_app_evt_wait();
-  } while (sd_evt_get	(p_evt_id) == NRF_ERROR_NOT_FOUND);
+  (int) 0;
 
-  if (*p_evt_id == NRF_EVT_FLASH_OPERATION_SUCCESS) {
-    NRF_LOG_INFO("Successfully wrote data to flash.");
+  if (err_code > 0) {
+    return false;
   }
-  else {
-    NRF_LOG_WARNING("Could not write to flash.");
+
+  uint32_t * 	p_evt_id;
+  while (flash_busy) { }
+  if (!flash_write_success) {
+    return false;
   }
 
   memcpy	((void *) data, (void *) FLASH_ADDR,
   (N_PARAMETERS+1) * sizeof(PARAM_T));
 
+  // Verify
+  for (int i = 0; i < N_PARAMETERS; i++) {
+    if (data[i+1] != p_data->vec[i]) { 
+      return false;
+    }
+  }
 }
-
 
 #endif

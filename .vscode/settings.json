@@ -3,6 +3,7 @@
         "nrf.h": "c",
         "nrf_log_default_backends.h": "c",
         "type_traits": "c",
-        "nrf_sdh.h": "c"
+        "nrf_sdh.h": "c",
+        "lsm6ds3.h": "c"
     }
 }
